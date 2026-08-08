@@ -64,6 +64,7 @@ def read_texts(directory):
                 pages.append( Document (
                     text=page_text, document_name=pdf.stem, page_number=page_number))
         pdf_contents[pdf.stem] = pages
+        print(f"Completed reading '{pdf.name}'...")
 
     return pdf_contents
 print("PDF_READER_LOADED")

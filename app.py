@@ -1,32 +1,24 @@
 from services.pdf_reader import read_texts
 from services.chunker import split_documents
+from services.embeddings import EmbeddingService
 
 
 if __name__ == "__main__":
 
     documents = read_texts("./docs")
 
-    for document_name, pages in documents.items():
+    all_chunks = []
 
+    for pages in documents.values():
         chunks = split_documents(pages)
+        all_chunks.extend(chunks)
 
-        print("=" * 70)
-        print(document_name)
-        print(f"Total Pages Extracted : {len(pages)}")
-        print(f"Total Chunks : {len(chunks)}")
-        print("=" * 70)
+    print(f"Total chunks: {len(all_chunks)}")
 
-        if pages:
-            print("\nFirst 500 characters of Page 1:\n")
-            print(pages[0].text[:500])
-            print(pages[0].document_name)
-            print(pages[0].page_number)
+    embedding_service = EmbeddingService("all-MiniLM-L6-v2")
 
-        if chunks:
-            print("\nFirst Chunk:\n")
-            print(chunks[5].text)
-            print("\nDocument:", chunks[5].document_name)
-            print("Page:", chunks[5].page_number)
-            print("Chunk Number:", chunks[5].chunk_number)
+    vector = embedding_service.embed_text(all_chunks[0].text)
 
-        print("\n\n")
+    print(f"Vector type: {type(vector)}")
+    print(f"Vector shape: {vector.shape}")
+    print(f"First 10 values: {vector[:10]}")

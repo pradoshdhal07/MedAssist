@@ -11,15 +11,15 @@ print(f"Vectors loaded from FAISS: {faiss_index.index.ntotal}")
 print(f"Chunks loaded: {len(chunks)}")
 
 
-faiss_id = 1234
+faiss_id = 1233
 
 vector = faiss_index.index.reconstruct(faiss_id)
 chunk = chunks[faiss_id]
 
 
-print("\n--- FAISS ID 1234 ---")
+print("\n--- FAISS ID 1233 ---")
 print(f"Vector shape: {vector.shape}")
 print(f"First 10 vector values: {vector[:10]}")
 
-print("\n--- CHUNK 1234 ---")
+print("\n--- CHUNK 1233 ---")
 print(chunk)

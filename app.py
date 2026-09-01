@@ -1,54 +1,110 @@
-from services.pdf_reader import read_texts
-from services.chunker import split_documents
-from services.embeddings import EmbeddingService
-from services.faiss_index import FAISSIndex
-from services.chunk_store import save_chunks
+from services.retriever import Retriever
+from services.context_builder import ContextBuilder
+from services.generator import Generator
+
+
+def main():
+
+    print("=" * 60)
+    print("                 MEDASSIST")
+    print("      Medical Document Question Answering")
+    print("=" * 60)
+
+    # ----------------------------------------
+    # Initialize components
+    # ----------------------------------------
+
+    print("\nLoading MedAssist...")
+
+    retriever = Retriever(
+        index_path="./index/medassist.faiss",
+        chunks_path="./index/chunks.pkl"
+    )
+
+    builder = ContextBuilder()
+    generator = Generator()
+
+    print("MedAssist loaded successfully.")
+    print("\nType 'exit' to quit.")
+
+    # ----------------------------------------
+    # Question-answer loop
+    # ----------------------------------------
+
+    while True:
+
+        query = input("\nEnter your question: ").strip()
+
+        if query.lower() == "exit":
+            print("\nExiting MedAssist. Goodbye!")
+            break
+
+        if not query:
+            print("Please enter a question.")
+            continue
+
+        try:
+
+            # 1. Retrieve relevant chunks
+            results = retriever.retrieve(
+                query,
+                top_k=7
+            )
+
+            if not results:
+                print("\nNo relevant information found.")
+                continue
+
+            # 2. Build context from retrieved chunks
+            context = builder.build(results)
+
+            # 3. Generate answer using Gemini
+            answer = generator.generate(
+                query,
+                context
+            )
+
+            # 4. Display answer
+            print("\n" + "=" * 60)
+            print("                    ANSWER")
+            print("=" * 60)
+            print(answer)
+
+            # ----------------------------------------
+            # 5. Display sources
+            # ----------------------------------------
+
+            print("\n" + "-" * 60)
+            print("                    SOURCES")
+            print("-" * 60)
+
+            seen_sources = set()
+
+            for result in results:
+
+                chunk = result["chunk"]
+
+                source = (
+                    chunk.document_name,
+                    chunk.page_number
+                )
+
+                # Avoid displaying the same document/page multiple times
+                if source in seen_sources:
+                    continue
+
+                print(
+                    f"- {chunk.document_name} — "
+                    f"Page {chunk.page_number}"
+                )
+
+                seen_sources.add(source)
+
+        except Exception as e:
+
+            print("\nSomething went wrong:")
+            print(e)
 
 
 if __name__ == "__main__":
-
-    # 1. Read all PDFs
-    documents = read_texts("./docs")
-
-    # 2. Create chunks from all documents
-    all_chunks = []
-
-    for pages in documents.values():
-        chunks = split_documents(pages)
-        all_chunks.extend(chunks)
-
-    print(f"Total chunks: {len(all_chunks)}")
-
-    # 3. Load embedding model
-    embedding_service = EmbeddingService("all-MiniLM-L6-v2")
-
-    # 4. Create embeddings for all chunks
-    vectors = [
-        embedding_service.embed_text(chunk.text)
-        for chunk in all_chunks
-    ]
-
-    print(f"Total vectors: {len(vectors)}")
-    print(f"Vector dimension: {vectors[0].shape}")
-
-    # 5. Create FAISS index
-    faiss_index = FAISSIndex(384)
-
-    # 6. Add embeddings to FAISS
-    faiss_index.add(vectors)
-
-    print(f"Total vectors in FAISS: {faiss_index.index.ntotal}")
-
-    print("Before saving:")
-    print("Index type:", type(faiss_index.index))
-    print("Dimension:", faiss_index.index.d)
-    print("Total vectors:", faiss_index.index.ntotal)
-
-    # 7. Save FAISS index
-    faiss_index.save("./index/medassist.faiss")
-
-    # 8. Save original chunks
-    save_chunks(all_chunks, "./index/chunks.pkl")
-
-    print("FAISS index saved.")
-    print("Chunks saved.")
+    main()
